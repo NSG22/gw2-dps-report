@@ -8,7 +8,7 @@ use std::fs::{self, File};
 use std::io::{Error, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use tokio::runtime::Runtime;
+use tokio::runtime::Builder;
 
 fn static_file_body(filename: &str) -> Result<Body, Error> {
     let path = format!(
@@ -197,6 +197,14 @@ async fn dispatcher(request: Request<Body>) -> Result<Response<Body>, hyper::Err
 }
 
 fn main() {
+    Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async_main());
+}
+
+async fn async_main() {
     let addr = format!(
         "{}:{}",
         env::var("SERVER_LISTEN_ADDR").unwrap_or("127.0.0.1".to_string()),
@@ -211,9 +219,7 @@ fn main() {
 
     println!("Listening on http://{}", addr);
 
-    Runtime::new().unwrap().block_on(async {
-        if let Err(err) = server.await {
-            eprintln!("Server error: {}", err);
-        }
-    })
+    if let Err(err) = server.await {
+        eprintln!("Server error: {}", err);
+    }
 }
